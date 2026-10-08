@@ -84,13 +84,23 @@ def init_db():
             linkedin TEXT,
             email TEXT,
             location TEXT,
-            avatar_url TEXT
+            avatar_url TEXT,
+            stat_label TEXT,
+            stat_value TEXT
         )
     ''')
 
-    # Ensure avatar_url column exists for existing databases
+    # Ensure avatar_url, stat_label, stat_value columns exist for existing databases
     try:
         cursor.execute("ALTER TABLE profile ADD COLUMN avatar_url TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE profile ADD COLUMN stat_label TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE profile ADD COLUMN stat_value TEXT")
     except sqlite3.OperationalError:
         pass
 
@@ -381,6 +391,8 @@ def update_profile():
     email = data.get('email', '').strip()
     location = data.get('location', '').strip()
     avatar_url = data.get('avatar_url', '').strip()
+    stat_label = data.get('stat_label', '').strip()
+    stat_value = data.get('stat_value', '').strip()
 
     # Input validations
     if not name or len(name) > 100:
@@ -395,9 +407,9 @@ def update_profile():
     db = get_db()
     db.execute('''
         UPDATE profile 
-        SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?, avatar_url = ?
+        SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?, avatar_url = ?, stat_label = ?, stat_value = ?
         WHERE id = 1
-    ''', (name, headline, bio, github, linkedin, email, location, avatar_url))
+    ''', (name, headline, bio, github, linkedin, email, location, avatar_url, stat_label, stat_value))
     db.commit()
 
     return jsonify({'success': True, 'message': 'Profile updated successfully'})

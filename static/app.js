@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTypewriter();
   initCategoryFilter();
   initScrollReveal();
+  initScrollSpy();
   initMobileNav();
   initAdminAuth();
   initAdminTabs();
@@ -349,7 +350,9 @@ function initAdminTabs() {
         linkedin: document.getElementById('profLinkedin').value,
         email: document.getElementById('profEmail').value,
         location: document.getElementById('profLocation').value,
-        avatar_url: document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : ''
+        avatar_url: document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : '',
+        stat_label: document.getElementById('profStatLabel') ? document.getElementById('profStatLabel').value : '',
+        stat_value: document.getElementById('profStatValue') ? document.getElementById('profStatValue').value : ''
       };
 
       try {
@@ -698,4 +701,34 @@ function initFooterObserver() {
   });
 
   observer.observe(footer);
+}
+
+/* -----------------------------------------------------------------------------
+   10. Scroll-Spy for Sticky Navigation
+   ----------------------------------------------------------------------------- */
+function initScrollSpy() {
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  if (!sections.length || !navLinks.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.getAttribute('id');
+        navLinks.forEach(link => {
+          if (link.getAttribute('href') === `#${id}`) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
+    });
+  }, {
+    threshold: 0.25,
+    rootMargin: '-72px 0px -40% 0px'
+  });
+
+  sections.forEach(section => observer.observe(section));
 }
