@@ -83,9 +83,16 @@ def init_db():
             github TEXT,
             linkedin TEXT,
             email TEXT,
-            location TEXT
+            location TEXT,
+            avatar_url TEXT
         )
     ''')
+
+    # Ensure avatar_url column exists for existing databases
+    try:
+        cursor.execute("ALTER TABLE profile ADD COLUMN avatar_url TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     # Categories Table
     cursor.execute('''
@@ -373,6 +380,7 @@ def update_profile():
     linkedin = data.get('linkedin', '').strip()
     email = data.get('email', '').strip()
     location = data.get('location', '').strip()
+    avatar_url = data.get('avatar_url', '').strip()
 
     # Input validations
     if not name or len(name) > 100:
@@ -381,15 +389,15 @@ def update_profile():
         return jsonify({'error': 'Headline is required and must be under 200 characters'}), 400
     if not bio or len(bio) > 2000:
         return jsonify({'error': 'Bio is required and must be under 2000 characters'}), 400
-    if not validate_url(github) or not validate_url(linkedin):
-        return jsonify({'error': 'Social URLs must start with http:// or https://'}), 400
+    if not validate_url(github) or not validate_url(linkedin) or not validate_url(avatar_url):
+        return jsonify({'error': 'URLs must start with http:// or https://'}), 400
 
     db = get_db()
     db.execute('''
         UPDATE profile 
-        SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?
+        SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?, avatar_url = ?
         WHERE id = 1
-    ''', (name, headline, bio, github, linkedin, email, location))
+    ''', (name, headline, bio, github, linkedin, email, location, avatar_url))
     db.commit()
 
     return jsonify({'success': True, 'message': 'Profile updated successfully'})

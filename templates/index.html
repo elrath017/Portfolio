@@ -91,9 +91,13 @@
         <div class="hero-visual">
           <div class="visual-card">
             <div class="avatar-wrapper">
+              {% if profile.avatar_url %}
+              <img src="{{ profile.avatar_url }}" alt="{{ profile.name }}" class="avatar-img">
+              {% else %}
               <div class="avatar-fallback">
                 {{ profile.name[0] if profile.name else 'A' }}
               </div>
+              {% endif %}
             </div>
             <h2 class="profile-name">{{ profile.name }}</h2>
             <p class="profile-location">📍 {{ profile.location }}</p>
@@ -421,6 +425,10 @@
           <div class="form-group">
             <label class="form-label">LinkedIn URL</label>
             <input type="url" id="profLinkedin" class="form-control" value="{{ profile.linkedin }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Profile Image / Avatar URL</label>
+            <input type="url" id="profAvatar" class="form-control" value="{{ profile.avatar_url or '' }}" placeholder="https://example.com/photo.jpg">
           </div>
           <div class="form-group">
             <label class="form-label">Bio Description</label>

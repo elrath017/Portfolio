@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminAuth();
   initAdminTabs();
   initChatbot();
+  initFooterObserver();
 });
 
 /* -----------------------------------------------------------------------------
@@ -347,7 +348,8 @@ function initAdminTabs() {
         github: document.getElementById('profGithub').value,
         linkedin: document.getElementById('profLinkedin').value,
         email: document.getElementById('profEmail').value,
-        location: document.getElementById('profLocation').value
+        location: document.getElementById('profLocation').value,
+        avatar_url: document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : ''
       };
 
       try {
@@ -671,4 +673,29 @@ function initChatbot() {
   function scrollToBottom() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
+}
+
+/* -----------------------------------------------------------------------------
+   9. Footer Scroll Observer for Floating AI Chat Widget
+   ----------------------------------------------------------------------------- */
+function initFooterObserver() {
+  const footer = document.querySelector('.footer');
+  const triggerBtn = document.getElementById('chatWidgetTrigger');
+  
+  if (!footer || !triggerBtn) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.body.classList.add('footer-visible');
+      } else {
+        document.body.classList.remove('footer-visible');
+      }
+    });
+  }, {
+    rootMargin: '0px 0px 0px 0px',
+    threshold: 0.05
+  });
+
+  observer.observe(footer);
 }
