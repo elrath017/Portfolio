@@ -69,83 +69,50 @@ Features an **integrated Gemini AI Assistant**, an **Admin Control Drawer** for 
 
 Create a `.env` file in the root directory based on `.env.example`:
 
-| Variable | Description | Default / Example |
+| Variable | Description | Example / Default |
 | :--- | :--- | :--- |
+| `TURSO_DATABASE_URL` | Turso Cloud SQLite database URL | `libsql://portfolio-db.....` |
+| `TURSO_AUTH_TOKEN` | Turso Auth Token for cloud access | `eyJhbGci...` |
 | `SECRET_KEY` | Flask session signing key | `random-secure-string-here` |
 | `ADMIN_PASSWORD` | Password to unlock Admin Control Drawer | `admin123` |
 | `GEMINI_API_KEY` | Google Gemini API Key (from Google AI Studio) | `AIzaSy...` |
 | `GEMINI_MODEL` | Gemini Model identifier | `gemini-2.5-flash` |
+| `APP_ENV` | Environment mode (`production` or `development`) | `production` |
 | `FLASK_PORT` | Port for local dev server | `5000` |
 
 ---
 
-## 📦 Quick Start (Local Setup)
+## 📋 Render Deployment Checklist (100% Free Persistent Hosting)
 
-### 1. Clone the repository & set up environment
-```bash
-cd "Portfolio v1"
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
-```
+Follow this exact checklist when deploying on Render:
 
-### 2. Install dependencies
-```bash
-pip install -r requirements.txt
-```
+1. **Set Environment Variables on Render**:
+   In the Render dashboard, open your service $\rightarrow$ **Environment** $\rightarrow$ add these exact key names:
+   - `TURSO_DATABASE_URL`: `libsql://portfolio-db-elrath017.aws-ap-south-1.turso.io`
+   - `TURSO_AUTH_TOKEN`: *(your Turso database auth token)*
+   - `SECRET_KEY`: *(your secure random string)*
+   - `ADMIN_PASSWORD`: *(your admin password)*
+   - `GEMINI_API_KEY`: *(your Gemini API key)*
+   - `GEMINI_MODEL`: `gemini-2.5-flash`
+   *(Do NOT rely on `.env` on Render, because `.env` is ignored by Git and not uploaded).*
 
-### 3. Configure `.env`
-```bash
-cp .env.example .env
-# Edit .env and supply your ADMIN_PASSWORD and GEMINI_API_KEY
-```
+2. **Git & Token Security**:
+   - Confirm `.env` is listed in `.gitignore`.
+   - Never commit tokens or secret keys to Git.
 
-### 4. Run the Flask application
-```bash
-python app.py
-```
-Open your browser and navigate to: **`http://127.0.0.1:5000`**
-
-On initial startup, `portfolio.db` will automatically be created and seeded with placeholder data.
+3. **Verify Deployment & Persistence**:
+   - Check Render build logs for the startup confirmation line:  
+     `Using Turso database: portfolio-db-elrath017.aws-ap-south-1.turso.io | Projects count: 5`
+   - Health check endpoint: `https://your-app.onrender.com/healthz` (returns `ok`).
+   - Admin database status endpoint: `https://your-app.onrender.com/admin/db-status` (shows database backend and live table row counts).
 
 ---
 
-## 🔐 Admin Usage
+## 🧪 Database Persistence Verification
 
-1. Scroll to the footer of the page and click the discreet **"Admin"** text link.
-2. Enter your `ADMIN_PASSWORD` (default `admin123` unless specified in `.env`).
-3. The **Admin Control Panel** drawer will slide in from the right.
-4. From here you can:
-   - Update your profile details.
-   - Add new projects with custom tech tags and project URLs.
-   - Delete existing projects.
-   - Create new project categories.
-   - Add/Remove technical skills pills.
+Run the automated persistence test script to verify database read/write persistence across separate connections:
 
----
-
-## 🤖 Gemini AI Integration
-
-The AI chatbot uses the latest `google-genai` Python SDK (`from google import genai`). When a user sends a question, the backend fetches all profile, skills, and project data from SQLite and dynamically constructs a context-bounded system prompt.
-
-If `GEMINI_API_KEY` is omitted from `.env`, the chat trigger button is hidden gracefully on the frontend.
-
----
-
-## 🚀 Production Deployment (Gunicorn & SQLite)
-
-When deploying to platforms like **Render**, **Railway**, **Fly.io**, or an **AWS EC2 / VPS**:
-
-### 1. Production Command
-Run the application with Gunicorn:
 ```bash
-gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
+python test_persistence.py
 ```
-
-### 2. Persistent Storage for SQLite
-Ensure that `portfolio.db` is stored on a **persistent disk mount** so your added projects, categories, and profile edits persist across server restarts or container redeployments.
-
-### 3. Environment Configuration
-Ensure production environment variables (`SECRET_KEY`, `ADMIN_PASSWORD`, `GEMINI_API_KEY`) are set securely in your hosting dashboard.
+If configured correctly, the script connects to Turso, inserts a test project, verifies it using a new connection, cleans it up, and prints **`PASS`**.

@@ -30,6 +30,42 @@ except ImportError:
     LIBSQL_CLIENT_AVAILABLE = False
 
 
+class TursoRow:
+    """Row object supporting both dictionary-style key indexing (row['name']) and tuple index access (row[0])."""
+    def __init__(self, cols, values):
+        self._cols = list(cols) if cols else []
+        self._values = list(values) if values else []
+        self._dict = {col: val for col, val in zip(self._cols, self._values)}
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._values[item]
+        elif isinstance(item, str):
+            return self._dict[item]
+        raise KeyError(item)
+
+    def get(self, key, default=None):
+        return self._dict.get(key, default)
+
+    def keys(self):
+        return self._dict.keys()
+
+    def values(self):
+        return self._dict.values()
+
+    def items(self):
+        return self._dict.items()
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def __repr__(self):
+        return repr(self._dict)
+
+
 class TursoResultWrapper:
     def __init__(self, res):
         self.lastrowid = getattr(res, 'last_insert_rowid', None)
@@ -39,8 +75,10 @@ class TursoResultWrapper:
         raw_rows = getattr(res, 'rows', [])
         self.rows = []
         for row in raw_rows:
-            if cols and not isinstance(row, dict):
-                self.rows.append({col: val for col, val in zip(cols, row)})
+            if isinstance(row, (list, tuple)):
+                self.rows.append(TursoRow(cols, row))
+            elif isinstance(row, dict):
+                self.rows.append(TursoRow(row.keys(), row.values()))
             else:
                 self.rows.append(row)
 
@@ -53,8 +91,12 @@ class TursoResultWrapper:
 
 class TursoClientWrapper:
     def __init__(self, url, token):
+        import libsql_client
         http_url = url.strip().replace("libsql://", "https://")
         self.client = libsql_client.create_client_sync(url=http_url, auth_token=token)
+        self.backend_name = "turso"
+        parsed = urlparse(http_url)
+        self.host = parsed.netloc or parsed.path
 
     def execute(self, sql, args=None):
         if args is None:
@@ -115,17 +157,35 @@ RATE_LIMIT_WINDOW_SECONDS = 60
 def create_db_connection():
     turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
     turso_token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+    app_env = os.environ.get("APP_ENV", "production").strip().lower()
 
     if turso_url and turso_token and LIBSQL_CLIENT_AVAILABLE:
         try:
             return TursoClientWrapper(turso_url, turso_token)
         except Exception as e:
-            print(f"Warning: Turso cloud HTTP connection failed, falling back to local SQLite: {e}")
+            if app_env == "development":
+                print(f"Development warning: Turso connection failed ({e}), falling back to local SQLite.")
+            else:
+                raise RuntimeError(f"FATAL: Turso database connection failed in production: {e}")
 
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    if app_env == "development":
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.backend_name = "sqlite"
+        conn.host = "local-file (portfolio.db)"
+        return conn
+
+    # Production mode without Turso credentials: FATAL FAIL AT STARTUP
+    missing = []
+    if not turso_url:
+        missing.append("TURSO_DATABASE_URL")
+    if not turso_token:
+        missing.append("TURSO_AUTH_TOKEN")
+    if not LIBSQL_CLIENT_AVAILABLE:
+        missing.append("libsql-client package")
+
+    raise RuntimeError(f"FATAL: Production mode requires Turso database configuration ({', '.join(missing)} missing). Silent local fallback is disabled.")
 
 def sync_db(db):
     pass
@@ -143,7 +203,7 @@ def close_db(exception):
         db.close()
 
 def init_db():
-    """Create database tables and seed with initial profile and projects if empty."""
+    """Create database tables and seed with initial profile and projects ONLY if empty."""
     db = create_db_connection()
     cursor = db.cursor()
 
@@ -163,20 +223,6 @@ def init_db():
             stat_value TEXT
         )
     ''')
-
-    # Ensure avatar_url, stat_label, stat_value columns exist for existing databases
-    try:
-        cursor.execute("ALTER TABLE profile ADD COLUMN avatar_url TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE profile ADD COLUMN stat_label TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE profile ADD COLUMN stat_value TEXT")
-    except Exception:
-        pass
 
     # Categories Table
     cursor.execute('''
@@ -212,9 +258,11 @@ def init_db():
         )
     ''')
 
-    # Check if database is already seeded
-    cursor.execute("SELECT COUNT(*) FROM profile")
-    if cursor.fetchone()[0] == 0:
+    # Check if profile table is empty before seeding default data
+    prof_row = cursor.execute("SELECT COUNT(*) FROM profile").fetchone()
+    profile_count = prof_row[0] if prof_row else 0
+
+    if profile_count == 0:
         # Seed Profile
         cursor.execute('''
             INSERT INTO profile (id, name, headline, bio, github, linkedin, email, location)
@@ -238,8 +286,8 @@ def init_db():
         cursor.executemany("INSERT INTO categories (name, slug) VALUES (?, ?)", categories)
 
         # Map category names to IDs
-        cursor.execute("SELECT id, name FROM categories")
-        cat_map = {row[1]: row[0] for row in cursor.fetchall()}
+        cat_rows = cursor.execute("SELECT id, name FROM categories").fetchall()
+        cat_map = {row['name']: row['id'] for row in cat_rows}
 
         # Seed Projects
         projects = [
@@ -326,9 +374,14 @@ def init_db():
             ("Languages & Tools", "Jupyter")
         ]
         cursor.executemany("INSERT INTO skills (category, name) VALUES (?, ?)", skills)
+        db.commit()
 
-    db.commit()
-    sync_db(db)
+    # Log backend status and project count on startup
+    proj_row = cursor.execute("SELECT COUNT(*) FROM projects").fetchone()
+    project_count = proj_row[0] if proj_row else 0
+    backend_info = getattr(db, 'host', 'local-file')
+    backend_type = getattr(db, 'backend_name', 'sqlite')
+    print(f"Using {backend_type.title()} database: {backend_info} | Projects count: {project_count}")
     db.close()
 
 
@@ -469,6 +522,37 @@ def logout():
 def admin_status():
     return jsonify({'authenticated': bool(session.get('admin'))})
 
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    return "ok", 200
+
+@app.route('/admin/db-status', methods=['GET'])
+@require_admin
+def db_status():
+    try:
+        db = get_db()
+        backend_name = getattr(db, 'backend_name', 'sqlite')
+        db_host = getattr(db, 'host', 'local-file')
+
+        prof_row = db.execute("SELECT COUNT(*) FROM profile").fetchone()
+        cat_row = db.execute("SELECT COUNT(*) FROM categories").fetchone()
+        proj_row = db.execute("SELECT COUNT(*) FROM projects").fetchone()
+        skill_row = db.execute("SELECT COUNT(*) FROM skills").fetchone()
+
+        return jsonify({
+            'backend': backend_name,
+            'database_host': db_host,
+            'counts': {
+                'profile': prof_row[0] if prof_row else 0,
+                'categories': cat_row[0] if cat_row else 0,
+                'projects': proj_row[0] if proj_row else 0,
+                'skills': skill_row[0] if skill_row else 0
+            }
+        })
+    except Exception as e:
+        print(f"Error fetching db-status: {e}")
+        return jsonify({'error': f'Failed to retrieve database status: {str(e)}'}), 500
+
 
 # -----------------------------------------------------------------------------
 # Admin API Endpoints - Profile Management
@@ -477,38 +561,42 @@ def admin_status():
 @app.route('/api/profile', methods=['PUT'])
 @require_admin
 def update_profile():
-    data = request.get_json(silent=True) or {}
+    try:
+        data = request.get_json(silent=True) or {}
 
-    name = data.get('name', '').strip()
-    headline = data.get('headline', '').strip()
-    bio = data.get('bio', '').strip()
-    github = data.get('github', '').strip()
-    linkedin = data.get('linkedin', '').strip()
-    email = data.get('email', '').strip()
-    location = data.get('location', '').strip()
-    avatar_url = transform_google_drive_url(data.get('avatar_url', '').strip())
-    stat_label = data.get('stat_label', '').strip()
-    stat_value = data.get('stat_value', '').strip()
+        name = data.get('name', '').strip()
+        headline = data.get('headline', '').strip()
+        bio = data.get('bio', '').strip()
+        github = data.get('github', '').strip()
+        linkedin = data.get('linkedin', '').strip()
+        email = data.get('email', '').strip()
+        location = data.get('location', '').strip()
+        avatar_url = transform_google_drive_url(data.get('avatar_url', '').strip())
+        stat_label = data.get('stat_label', '').strip()
+        stat_value = data.get('stat_value', '').strip()
 
-    # Input validations
-    if not name or len(name) > 100:
-        return jsonify({'error': 'Name is required and must be under 100 characters'}), 400
-    if not headline or len(headline) > 200:
-        return jsonify({'error': 'Headline is required and must be under 200 characters'}), 400
-    if not bio or len(bio) > 2000:
-        return jsonify({'error': 'Bio is required and must be under 2000 characters'}), 400
-    if not validate_url(github) or not validate_url(linkedin) or not validate_url(avatar_url):
-        return jsonify({'error': 'URLs must start with http:// or https://'}), 400
+        # Input validations
+        if not name or len(name) > 100:
+            return jsonify({'error': 'Name is required and must be under 100 characters'}), 400
+        if not headline or len(headline) > 200:
+            return jsonify({'error': 'Headline is required and must be under 200 characters'}), 400
+        if not bio or len(bio) > 2000:
+            return jsonify({'error': 'Bio is required and must be under 2000 characters'}), 400
+        if not validate_url(github) or not validate_url(linkedin) or not validate_url(avatar_url):
+            return jsonify({'error': 'URLs must start with http:// or https://'}), 400
 
-    db = get_db()
-    db.execute('''
-        UPDATE profile 
-        SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?, avatar_url = ?, stat_label = ?, stat_value = ?
-        WHERE id = 1
-    ''', (name, headline, bio, github, linkedin, email, location, avatar_url, stat_label, stat_value))
-    db.commit()
+        db = get_db()
+        db.execute('''
+            UPDATE profile 
+            SET name = ?, headline = ?, bio = ?, github = ?, linkedin = ?, email = ?, location = ?, avatar_url = ?, stat_label = ?, stat_value = ?
+            WHERE id = 1
+        ''', (name, headline, bio, github, linkedin, email, location, avatar_url, stat_label, stat_value))
+        db.commit()
 
-    return jsonify({'success': True, 'message': 'Profile updated successfully'})
+        return jsonify({'success': True, 'message': 'Profile updated successfully'})
+    except Exception as e:
+        print(f"Error updating profile: {e}")
+        return jsonify({'error': f'Failed to update profile: {str(e)}'}), 500
 
 
 # -----------------------------------------------------------------------------
