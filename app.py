@@ -21,6 +21,13 @@ try:
 except ImportError:
     GEMINI_SDK_AVAILABLE = False
 
+# Try importing libsql_experimental for Turso Cloud SQLite support
+try:
+    import libsql_experimental as libsql
+    LIBSQL_AVAILABLE = True
+except ImportError:
+    LIBSQL_AVAILABLE = False
+
 app = Flask(__name__)
 
 # Helper functions to fetch current environment variables dynamically
@@ -54,23 +61,46 @@ RATE_LIMIT_WINDOW_SECONDS = 60
 # Database Helpers & Seeding
 # -----------------------------------------------------------------------------
 
+def create_db_connection():
+    turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+    turso_token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+
+    if turso_url and turso_token and LIBSQL_AVAILABLE:
+        try:
+            conn = libsql.connect("portfolio.db", sync_url=turso_url, auth_token=turso_token)
+            conn.sync()
+            conn.row_factory = sqlite3.Row
+            return conn
+        except Exception as e:
+            print(f"Warning: Turso cloud connection failed, falling back to local SQLite: {e}")
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+def sync_db(db):
+    if hasattr(db, 'sync'):
+        try:
+            db.sync()
+        except Exception as e:
+            print(f"Warning: Turso sync error: {e}")
+
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
-        # Enable Foreign Keys
-        g.db.execute("PRAGMA foreign_keys = ON")
+        g.db = create_db_connection()
     return g.db
 
 @app.teardown_appcontext
 def close_db(exception):
     db = g.pop('db', None)
     if db is not None:
+        sync_db(db)
         db.close()
 
 def init_db():
     """Create database tables and seed with initial profile and projects if empty."""
-    db = sqlite3.connect(DATABASE)
+    db = create_db_connection()
     cursor = db.cursor()
 
     # Profile Table
@@ -254,6 +284,7 @@ def init_db():
         cursor.executemany("INSERT INTO skills (category, name) VALUES (?, ?)", skills)
 
     db.commit()
+    sync_db(db)
     db.close()
 
 
