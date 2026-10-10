@@ -71,7 +71,8 @@ def create_db_connection():
             # Convert libsql:// to https:// for direct HTTP remote connection (no Gunicorn background thread deadlocks)
             remote_url = turso_url.replace("libsql://", "https://")
             conn = libsql.connect(remote_url, auth_token=turso_token)
-            conn.row_factory = sqlite3.Row
+            if hasattr(conn, 'row_factory'):
+                conn.row_factory = sqlite3.Row
             return conn
         except Exception as e:
             print(f"Warning: Turso cloud connection failed, falling back to local SQLite: {e}")
