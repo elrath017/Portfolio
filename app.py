@@ -67,8 +67,9 @@ def create_db_connection():
 
     if turso_url and turso_token and LIBSQL_AVAILABLE:
         try:
-            conn = libsql.connect("portfolio.db", sync_url=turso_url, auth_token=turso_token)
-            conn.sync()
+            # Convert libsql:// to https:// for direct HTTP remote connection (no Gunicorn background thread deadlocks)
+            remote_url = turso_url.replace("libsql://", "https://")
+            conn = libsql.connect(remote_url, auth_token=turso_token)
             conn.row_factory = sqlite3.Row
             return conn
         except Exception as e:
