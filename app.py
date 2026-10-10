@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import hmac
 import time
@@ -300,6 +301,22 @@ def validate_url(url_str):
     url_str = url_str.strip().lower()
     return url_str.startswith('http://') or url_str.startswith('https://') or url_str.startswith('mailto:')
 
+def transform_google_drive_url(url):
+    """Automatically convert Google Drive view/share links into direct image URLs."""
+    if not url:
+        return url
+    url = url.strip()
+    if 'drive.google.com' in url or 'docs.google.com' in url:
+        # Match /file/d/FILE_ID
+        match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', url)
+        if match:
+            return f"https://lh3.googleusercontent.com/d/{match.group(1)}"
+        # Match ?id=FILE_ID or &id=FILE_ID
+        match = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', url)
+        if match:
+            return f"https://lh3.googleusercontent.com/d/{match.group(1)}"
+    return url
+
 def require_admin(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -328,6 +345,8 @@ def index():
     # Fetch Profile
     profile_row = db.execute("SELECT * FROM profile WHERE id = 1").fetchone()
     profile = dict(profile_row) if profile_row else {}
+    if profile.get('avatar_url'):
+        profile['avatar_url'] = transform_google_drive_url(profile['avatar_url'])
 
     # Fetch Categories
     categories_rows = db.execute("SELECT * FROM categories ORDER BY name ASC").fetchall()
@@ -341,6 +360,9 @@ def index():
         ORDER BY p.id DESC
     ''').fetchall()
     projects = [dict(p) for p in projects_rows]
+    for p in projects:
+        if p.get('image_url'):
+            p['image_url'] = transform_google_drive_url(p['image_url'])
 
     # Fetch Skills grouped by category
     skills_rows = db.execute("SELECT * FROM skills ORDER BY category ASC, id ASC").fetchall()
@@ -422,7 +444,7 @@ def update_profile():
     linkedin = data.get('linkedin', '').strip()
     email = data.get('email', '').strip()
     location = data.get('location', '').strip()
-    avatar_url = data.get('avatar_url', '').strip()
+    avatar_url = transform_google_drive_url(data.get('avatar_url', '').strip())
     stat_label = data.get('stat_label', '').strip()
     stat_value = data.get('stat_value', '').strip()
 
@@ -505,7 +527,7 @@ def create_project():
     tech_stack = data.get('tech_stack', '').strip()
     project_url = data.get('project_url', '').strip()
     github_url = data.get('github_url', '').strip()
-    image_url = data.get('image_url', '').strip()
+    image_url = transform_google_drive_url(data.get('image_url', '').strip())
 
     # Validation
     if not title or len(title) > 150:
@@ -539,7 +561,7 @@ def update_project(project_id):
     tech_stack = data.get('tech_stack', '').strip()
     project_url = data.get('project_url', '').strip()
     github_url = data.get('github_url', '').strip()
-    image_url = data.get('image_url', '').strip()
+    image_url = transform_google_drive_url(data.get('image_url', '').strip())
 
     if not title or not category_id or not description or not tech_stack:
         return jsonify({'error': 'Title, Category, Description, and Tech Stack are required fields'}), 400
