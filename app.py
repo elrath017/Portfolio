@@ -22,12 +22,62 @@ try:
 except ImportError:
     GEMINI_SDK_AVAILABLE = False
 
-# Try importing libsql_experimental for Turso Cloud SQLite support
+# Try importing libsql_client for Turso Cloud HTTP SQLite support
 try:
-    import libsql_experimental as libsql
-    LIBSQL_AVAILABLE = True
+    import libsql_client
+    LIBSQL_CLIENT_AVAILABLE = True
 except ImportError:
-    LIBSQL_AVAILABLE = False
+    LIBSQL_CLIENT_AVAILABLE = False
+
+
+class TursoResultWrapper:
+    def __init__(self, res):
+        self.lastrowid = getattr(res, 'last_insert_rowid', None)
+        self.rowcount = getattr(res, 'rows_affected', 0)
+        
+        cols = getattr(res, 'columns', [])
+        raw_rows = getattr(res, 'rows', [])
+        self.rows = []
+        for row in raw_rows:
+            if cols and not isinstance(row, dict):
+                self.rows.append({col: val for col, val in zip(cols, row)})
+            else:
+                self.rows.append(row)
+
+    def fetchone(self):
+        return self.rows[0] if self.rows else None
+
+    def fetchall(self):
+        return self.rows
+
+
+class TursoClientWrapper:
+    def __init__(self, url, token):
+        http_url = url.strip().replace("libsql://", "https://")
+        self.client = libsql_client.create_client_sync(url=http_url, auth_token=token)
+
+    def execute(self, sql, args=None):
+        if args is None:
+            args = ()
+        res = self.client.execute(sql, args)
+        return TursoResultWrapper(res)
+
+    def executemany(self, sql, seq_of_args):
+        for args in seq_of_args:
+            self.execute(sql, args)
+
+    def cursor(self):
+        return self
+
+    def commit(self):
+        pass
+
+    def close(self):
+        try:
+            self.client.close()
+        except Exception:
+            pass
+
 
 app = Flask(__name__)
 
@@ -66,16 +116,11 @@ def create_db_connection():
     turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
     turso_token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
 
-    if turso_url and turso_token and LIBSQL_AVAILABLE:
+    if turso_url and turso_token and LIBSQL_CLIENT_AVAILABLE:
         try:
-            # Convert libsql:// to https:// for direct HTTP remote connection (no Gunicorn background thread deadlocks)
-            remote_url = turso_url.replace("libsql://", "https://")
-            conn = libsql.connect(remote_url, auth_token=turso_token)
-            if hasattr(conn, 'row_factory'):
-                conn.row_factory = sqlite3.Row
-            return conn
+            return TursoClientWrapper(turso_url, turso_token)
         except Exception as e:
-            print(f"Warning: Turso cloud connection failed, falling back to local SQLite: {e}")
+            print(f"Warning: Turso cloud HTTP connection failed, falling back to local SQLite: {e}")
 
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -83,11 +128,7 @@ def create_db_connection():
     return conn
 
 def sync_db(db):
-    if hasattr(db, 'sync'):
-        try:
-            db.sync()
-        except Exception as e:
-            print(f"Warning: Turso sync error: {e}")
+    pass
 
 def get_db():
     if 'db' not in g:
