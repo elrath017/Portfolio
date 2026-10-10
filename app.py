@@ -126,15 +126,15 @@ def init_db():
     # Ensure avatar_url, stat_label, stat_value columns exist for existing databases
     try:
         cursor.execute("ALTER TABLE profile ADD COLUMN avatar_url TEXT")
-    except sqlite3.OperationalError:
+    except Exception:
         pass
     try:
         cursor.execute("ALTER TABLE profile ADD COLUMN stat_label TEXT")
-    except sqlite3.OperationalError:
+    except Exception:
         pass
     try:
         cursor.execute("ALTER TABLE profile ADD COLUMN stat_value TEXT")
-    except sqlite3.OperationalError:
+    except Exception:
         pass
 
     # Categories Table
