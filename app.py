@@ -5,7 +5,7 @@ import hmac
 import time
 from functools import wraps
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, jsonify, session, g
+from flask import Flask, render_template, request, jsonify, session, g, send_from_directory
 
 # Load environment variables if python-dotenv is installed
 try:
@@ -358,6 +358,10 @@ def index():
         skills_by_cat=skills_by_cat,
         has_gemini_key=bool(get_gemini_api_key())
     )
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.svg', mimetype='image/svg+xml')
 
 
 # -----------------------------------------------------------------------------

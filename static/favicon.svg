@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181820"/>
+      <stop offset="100%" stop-color="#07070a"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3347"/>
+      <stop offset="100%" stop-color="#8f0f1b"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#e11d2e" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Rounded Squircle Background -->
+  <rect x="2.5" y="2.5" width="59" height="59" rx="16" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2.5"/>
+
+  <!-- Subtle ambient inner glow behind text -->
+  <circle cx="32" cy="32" r="18" fill="#e11d2e" opacity="0.12"/>
+
+  <!-- Stylized Monogram Initials RkP -->
+  <text x="32" y="34.5" 
+        font-family="system-ui, -apple-system, 'Space Grotesk', 'Inter', sans-serif" 
+        font-size="24" 
+        font-weight="900" 
+        letter-spacing="-0.5px"
+        text-anchor="middle" 
+        dominant-baseline="central">
+    <tspan fill="#ffffff">R</tspan><tspan fill="#e11d2e" filter="url(#glow)">k</tspan><tspan fill="#ffffff">P</tspan>
+  </text>
+</svg>
