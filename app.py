@@ -680,6 +680,22 @@ def chat():
     for s in skills_rows:
         skills_by_cat.setdefault(s['category'], []).append(s['name'])
 
+    # Build Skills Context
+    skills_text_lines = []
+    for cat, items in skills_by_cat.items():
+        skills_text_lines.append(f"- {cat}: {', '.join(items)}")
+    skills_context = "\n".join(skills_text_lines)
+
+    # Build Projects Context
+    projects_text_lines = []
+    for p in projects:
+        projects_text_lines.append(
+            f"- Title: {p['title']} | Category: {p['category']} | Tech Stack: {p['tech_stack']}\n"
+            f"  Description: {p['description']}\n"
+            f"  Link: {p['project_url']}"
+        )
+    projects_context = "\n".join(projects_text_lines)
+
     # Build System Prompt Context
     system_prompt = f"""You are the official AI Assistant for {profile.get('name', 'the Portfolio Owner')}, a {profile.get('headline', 'Data Scientist / AI Engineer')}.
 
@@ -693,10 +709,10 @@ LinkedIn: {profile.get('linkedin')}
 Bio: {profile.get('bio')}
 
 TECHNICAL SKILLS:
-{chr(10).join([f"- {cat}: {', '.join(items)}" for cat, items in skills_by_cat.items()])}
+{skills_context}
 
 FEATURED PROJECTS:
-{chr(10).join([f"- Title: {p['title']} | Category: {p['category']} | Tech Stack: {p['tech_stack']}\n  Description: {p['description']}\n  Link: {p['project_url']}" for p in projects])}
+{projects_context}
 
 STRICT OPERATIONAL GUIDELINES:
 1. You must answer questions using ONLY the portfolio context above.
