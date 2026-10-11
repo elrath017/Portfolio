@@ -337,11 +337,42 @@ function initAdminTabs() {
     });
   });
 
+function normalizeImageUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  // 1. Google Drive /file/d/<id>
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) {
+    return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
+  }
+  // 2. Google Drive ?id=<id> or &id=<id>
+  const idMatch = url.match(/(?:drive|docs)\.google\.com\/.*?[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) {
+    return `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
+  }
+  return url;
+}
+
+  // Auto-normalize image URLs on input change
+  const profAvatarInput = document.getElementById('profAvatar');
+  if (profAvatarInput) {
+    profAvatarInput.addEventListener('change', () => {
+      profAvatarInput.value = normalizeImageUrl(profAvatarInput.value);
+    });
+  }
+  const projImageInput = document.getElementById('projImage');
+  if (projImageInput) {
+    projImageInput.addEventListener('change', () => {
+      projImageInput.value = normalizeImageUrl(projImageInput.value);
+    });
+  }
+
   // Profile Form Handler
   const profileForm = document.getElementById('adminProfileForm');
   if (profileForm) {
     profileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const rawAvatar = document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : '';
       const payload = {
         name: document.getElementById('profName').value,
         headline: document.getElementById('profHeadline').value,
@@ -350,7 +381,7 @@ function initAdminTabs() {
         linkedin: document.getElementById('profLinkedin').value,
         email: document.getElementById('profEmail').value,
         location: document.getElementById('profLocation').value,
-        avatar_url: document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : '',
+        avatar_url: normalizeImageUrl(rawAvatar),
         stat_label: document.getElementById('profStatLabel') ? document.getElementById('profStatLabel').value : '',
         stat_value: document.getElementById('profStatValue') ? document.getElementById('profStatValue').value : ''
       };
@@ -383,6 +414,7 @@ function initAdminTabs() {
   if (projectForm) {
     projectForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const rawProjImg = document.getElementById('projImage') ? document.getElementById('projImage').value : '';
       const payload = {
         title: document.getElementById('projTitle').value,
         category_id: parseInt(document.getElementById('projCategory').value, 10),
@@ -390,7 +422,7 @@ function initAdminTabs() {
         tech_stack: document.getElementById('projTech').value,
         project_url: document.getElementById('projUrl').value,
         github_url: document.getElementById('projGithub').value,
-        image_url: document.getElementById('projImage').value
+        image_url: normalizeImageUrl(rawProjImg)
       };
 
       try {

@@ -92,9 +92,12 @@
           <div class="visual-card">
             <div class="avatar-wrapper">
               {% if profile.avatar_url %}
-              <img src="{{ profile.avatar_url }}" alt="{{ profile.name }}" class="avatar-img">
+              <img src="{{ profile.avatar_url|format_image_url }}" alt="{{ profile.name }}" class="avatar-img" id="heroAvatarImg" onerror="this.style.display='none'; document.getElementById('avatarFallback').style.display='flex';">
+              <div class="avatar-fallback" id="avatarFallback" style="display: none;">
+                {{ profile.name[0] if profile.name else 'A' }}
+              </div>
               {% else %}
-              <div class="avatar-fallback">
+              <div class="avatar-fallback" id="avatarFallback">
                 {{ profile.name[0] if profile.name else 'A' }}
               </div>
               {% endif %}
@@ -154,9 +157,8 @@
           <article class="project-card reveal card-edge-{{ proj.category_slug }}" data-category-slug="{{ proj.category_slug }}">
             <div class="project-thumbnail">
               {% if proj.image_url %}
-              <img src="{{ proj.image_url }}" alt="{{ proj.title }}" class="project-img" loading="lazy">
-              {% else %}
-              <div class="project-fallback-img fallback-{{ proj.category_slug }}">
+              <img src="{{ proj.image_url|format_image_url }}" alt="{{ proj.title }}" class="project-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="project-fallback-img fallback-{{ proj.category_slug }}" style="display: none;">
                 <svg class="fallback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   {% if proj.category_slug == 'ai' %}
                   <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 14a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"></path>
@@ -428,7 +430,8 @@
           </div>
           <div class="form-group">
             <label class="form-label">Profile Image / Avatar URL</label>
-            <input type="url" id="profAvatar" class="form-control" value="{{ profile.avatar_url or '' }}" placeholder="https://example.com/photo.jpg">
+            <input type="url" id="profAvatar" class="form-control" value="{{ profile.avatar_url or '' }}" placeholder="https://example.com/photo.jpg or Google Drive share link">
+            <small class="form-hint">💡 Google Drive links are supported! Set file access in Drive to <strong>"Anyone with the link can view"</strong>.</small>
           </div>
           <div class="form-group">
             <label class="form-label">Custom Hero Stat Label</label>
@@ -479,7 +482,8 @@
           </div>
           <div class="form-group">
             <label class="form-label">Image URL (Optional)</label>
-            <input type="url" id="projImage" class="form-control" placeholder="https://example.com/image.jpg">
+            <input type="url" id="projImage" class="form-control" placeholder="https://example.com/image.jpg or Google Drive share link">
+            <small class="form-hint">💡 Direct links or Google Drive links (shared with "Anyone with the link").</small>
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%;">Create Project</button>
         </form>

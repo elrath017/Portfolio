@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import hmac
 import time
@@ -34,7 +35,7 @@ def get_gemini_api_key():
     return os.environ.get('GEMINI_API_KEY', '').strip()
 
 def get_gemini_model():
-    return os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash').strip()
+    return os.environ.get('GEMINI_MODEL', 'gemini-3.5-flash-lite').strip()
 
 # Flask Session Security Configuration
 app.config['SECRET_KEY'] = get_secret_key()
@@ -146,13 +147,13 @@ def init_db():
             INSERT INTO profile (id, name, headline, bio, github, linkedin, email, location)
             VALUES (1, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            "Dr. Alex Devlin",
-            "Senior AI Engineer & Data Scientist",
-            "Pioneering intelligent agentic systems, production RAG pipelines, and high-throughput predictive machine learning models. Passionate about bridging theoretical AI research with production-grade engineering to build reliable, high-impact data products.",
-            "https://github.com",
-            "https://linkedin.com",
-            "alex.devlin.ai@example.com",
-            "San Francisco, CA / Remote"
+            "Rahul Pramanik",
+            "AI Engineer & Data Scientist",
+            "AI Engineer with strong skills in Python, C++, and Machine Learning. Experienced in developing Generative AI, NLP, and Deep Learning applications using TensorFlow, PyTorch, LangChain, FAISS, and Large Language Models (LLMs). Skilled in building AI-driven tools, integrating computer vision, data pipelines, and model deployment (MLOps) for intelligent automation.",
+            "https://github.com/elrath017",
+            "https://www.linkedin.com/in/rahul-pramanik-a5a809204/",
+            "[EMAIL_ADDRESS]",
+            "India/Remote"
         ))
 
         # Seed Categories
@@ -267,6 +268,36 @@ def validate_url(url_str):
         return True
     url_str = url_str.strip().lower()
     return url_str.startswith('http://') or url_str.startswith('https://') or url_str.startswith('mailto:')
+
+def normalize_image_url(url_str):
+    """
+    Transforms Google Drive and other file sharing links into direct image URLs.
+    Extracts the file ID from various Google Drive share URL formats and returns
+    the direct embed CDN URL: https://lh3.googleusercontent.com/d/<file_id>
+    """
+    if not url_str or not url_str.strip():
+        return ''
+    url = url_str.strip()
+
+    # 1. Google Drive /file/d/<id> (e.g. https://drive.google.com/file/d/1aBcDeF.../view?usp=sharing)
+    file_match = re.search(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)', url)
+    if file_match:
+        file_id = file_match.group(1)
+        return f"https://lh3.googleusercontent.com/d/{file_id}"
+
+    # 2. Google Drive /open?id=<id> or /uc?id=<id> or thumbnail?id=<id>
+    id_match = re.search(r'(?:drive|docs)\.google\.com/.*?[?&]id=([a-zA-Z0-9_-]+)', url)
+    if id_match:
+        file_id = id_match.group(1)
+        return f"https://lh3.googleusercontent.com/d/{file_id}"
+
+    return url
+
+@app.template_filter('format_image_url')
+def format_image_url_filter(url):
+    """Jinja filter to convert any stored Google Drive links into embeddable image URLs."""
+    return normalize_image_url(url)
+
 
 def require_admin(f):
     @wraps(f)
@@ -390,7 +421,7 @@ def update_profile():
     linkedin = data.get('linkedin', '').strip()
     email = data.get('email', '').strip()
     location = data.get('location', '').strip()
-    avatar_url = data.get('avatar_url', '').strip()
+    avatar_url = normalize_image_url(data.get('avatar_url', '').strip())
     stat_label = data.get('stat_label', '').strip()
     stat_value = data.get('stat_value', '').strip()
 
@@ -473,7 +504,7 @@ def create_project():
     tech_stack = data.get('tech_stack', '').strip()
     project_url = data.get('project_url', '').strip()
     github_url = data.get('github_url', '').strip()
-    image_url = data.get('image_url', '').strip()
+    image_url = normalize_image_url(data.get('image_url', '').strip())
 
     # Validation
     if not title or len(title) > 150:
@@ -507,7 +538,7 @@ def update_project(project_id):
     tech_stack = data.get('tech_stack', '').strip()
     project_url = data.get('project_url', '').strip()
     github_url = data.get('github_url', '').strip()
-    image_url = data.get('image_url', '').strip()
+    image_url = normalize_image_url(data.get('image_url', '').strip())
 
     if not title or not category_id or not description or not tech_stack:
         return jsonify({'error': 'Title, Category, Description, and Tech Stack are required fields'}), 400
