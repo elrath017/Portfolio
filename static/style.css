@@ -880,29 +880,33 @@ a {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 2rem;
+  padding: 2.2rem 1.8rem;
   text-align: center;
-  transition: transform var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: block;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s ease,
+              box-shadow 0.28s ease,
+              background 0.28s ease;
 }
 
-.contact-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(225, 29, 46, 0.5);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(225, 29, 46, 0.15);
-}
-
-/* Neutral card outline; icons get red */
 .contact-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   background: var(--surface-2);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem auto;
-  color: var(--accent);
+  margin: 0 auto 1.15rem auto;
   border: 1px solid var(--border);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.28s ease,
+              border-color 0.28s ease,
+              box-shadow 0.28s ease,
+              color 0.28s ease;
 }
 
 .contact-label {
@@ -910,7 +914,9 @@ a {
   font-size: 0.8rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+  transition: color 0.28s ease;
 }
 
 .contact-val {
@@ -918,6 +924,7 @@ a {
   font-weight: 600;
   color: var(--text);
   word-break: break-all;
+  transition: color 0.28s ease;
 }
 
 /* Prevent mid-word wrapping on Email address */
@@ -925,6 +932,124 @@ a {
   font-size: 0.88rem;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* --- GitHub Card: Signature GitHub Violet Glow --- */
+.contact-card-github .contact-icon-github {
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.22);
+}
+
+.contact-card-github:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(168, 85, 247, 0.75);
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.09) 0%, var(--surface) 100%);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45),
+              0 0 25px rgba(168, 85, 247, 0.38),
+              0 0 50px rgba(168, 85, 247, 0.16);
+}
+
+.contact-card-github:hover .contact-icon-github {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: rgba(168, 85, 247, 0.85);
+  color: #f3e8ff;
+  transform: translateY(-2px) scale(1.12) rotate(-4deg);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.55);
+}
+
+.contact-card-github:hover .contact-label {
+  color: #c084fc;
+}
+
+.contact-card-github:hover .contact-val {
+  color: #ffffff;
+}
+
+/* --- LinkedIn Card: Signature LinkedIn Electric Blue Glow --- */
+.contact-card-linkedin .contact-icon-linkedin {
+  color: #38bdf8;
+  background: rgba(10, 102, 194, 0.08);
+  border-color: rgba(10, 102, 194, 0.25);
+}
+
+.contact-card-linkedin:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(10, 102, 194, 0.8);
+  background: linear-gradient(180deg, rgba(10, 102, 194, 0.1) 0%, var(--surface) 100%);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45),
+              0 0 25px rgba(10, 102, 194, 0.42),
+              0 0 50px rgba(10, 102, 194, 0.22);
+}
+
+.contact-card-linkedin:hover .contact-icon-linkedin {
+  background: rgba(10, 102, 194, 0.24);
+  border-color: rgba(10, 102, 194, 0.9);
+  color: #e0f2fe;
+  transform: translateY(-2px) scale(1.12) rotate(4deg);
+  box-shadow: 0 0 24px rgba(10, 102, 194, 0.65);
+}
+
+.contact-card-linkedin:hover .contact-label {
+  color: #38bdf8;
+}
+
+.contact-card-linkedin:hover .contact-val {
+  color: #ffffff;
+}
+
+/* --- Gmail Card: Signature Google / Red Glow --- */
+.contact-card-gmail .contact-icon-gmail {
+  color: #f87171;
+  background: rgba(234, 67, 53, 0.08);
+  border-color: rgba(234, 67, 53, 0.22);
+}
+
+.contact-card-gmail:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(234, 67, 53, 0.8);
+  background: linear-gradient(180deg, rgba(234, 67, 53, 0.09) 0%, var(--surface) 100%);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45),
+              0 0 25px rgba(234, 67, 53, 0.38),
+              0 0 50px rgba(234, 67, 53, 0.16);
+}
+
+.contact-card-gmail:hover .contact-icon-gmail {
+  background: rgba(234, 67, 53, 0.22);
+  border-color: rgba(234, 67, 53, 0.9);
+  color: #fee2e2;
+  transform: translateY(-2px) scale(1.12);
+  box-shadow: 0 0 24px rgba(234, 67, 53, 0.6);
+}
+
+.contact-card-gmail:hover .contact-label {
+  color: #f87171;
+}
+
+.contact-card-gmail:hover .contact-val {
+  color: #ffffff;
+}
+
+/* Light Theme Overrides for Contact Cards */
+[data-theme="light"] .contact-card-github:hover {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1), 0 0 25px rgba(168, 85, 247, 0.28);
+}
+[data-theme="light"] .contact-card-github:hover .contact-val {
+  color: #1e1b4b;
+}
+
+[data-theme="light"] .contact-card-linkedin:hover {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1), 0 0 25px rgba(10, 102, 194, 0.32);
+}
+[data-theme="light"] .contact-card-linkedin:hover .contact-val {
+  color: #0c4a6e;
+}
+
+[data-theme="light"] .contact-card-gmail:hover {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1), 0 0 25px rgba(234, 67, 53, 0.28);
+}
+[data-theme="light"] .contact-card-gmail:hover .contact-val {
+  color: #7f1d1d;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1009,6 +1134,24 @@ a {
   box-shadow: 0 4px 14px var(--accent-glow);
 }
 
+.hero-social-btn.hero-social-github:hover {
+  background: #7c3aed;
+  border-color: #a855f7;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.55);
+}
+
+.hero-social-btn.hero-social-linkedin:hover {
+  background: #0a66c2;
+  border-color: #0284c7;
+  box-shadow: 0 4px 16px rgba(10, 102, 194, 0.55);
+}
+
+.hero-social-btn.hero-social-gmail:hover {
+  background: #ea4335;
+  border-color: #ef4444;
+  box-shadow: 0 4px 16px rgba(234, 67, 53, 0.55);
+}
+
 /* Footer Social Bar */
 .footer-social-bar {
   display: flex;
@@ -1033,6 +1176,27 @@ a {
   color: var(--accent);
   border-color: var(--accent);
   transform: translateY(-2px);
+}
+
+.footer-social-icon.footer-social-github:hover {
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.75);
+  background: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);
+}
+
+.footer-social-icon.footer-social-linkedin:hover {
+  color: #38bdf8;
+  border-color: rgba(10, 102, 194, 0.8);
+  background: rgba(10, 102, 194, 0.15);
+  box-shadow: 0 4px 14px rgba(10, 102, 194, 0.45);
+}
+
+.footer-social-icon.footer-social-gmail:hover {
+  color: #f87171;
+  border-color: rgba(234, 67, 53, 0.8);
+  background: rgba(234, 67, 53, 0.15);
+  box-shadow: 0 4px 14px rgba(234, 67, 53, 0.4);
 }
 
 /* Skill Tag Link */
