@@ -147,13 +147,13 @@ def init_db():
             INSERT INTO profile (id, name, headline, bio, github, linkedin, email, location)
             VALUES (1, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            "Rahul Pramanik",
-            "AI Engineer & Data Scientist",
-            "AI Engineer with strong skills in Python, C++, and Machine Learning. Experienced in developing Generative AI, NLP, and Deep Learning applications using TensorFlow, PyTorch, LangChain, FAISS, and Large Language Models (LLMs). Skilled in building AI-driven tools, integrating computer vision, data pipelines, and model deployment (MLOps) for intelligent automation.",
-            "https://github.com/elrath017",
-            "https://www.linkedin.com/in/rahul-pramanik-a5a809204/",
-            "[EMAIL_ADDRESS]",
-            "India/Remote"
+            "Dr. Alex Devlin",
+            "Senior AI Engineer & Data Scientist",
+            "Pioneering intelligent agentic systems, production RAG pipelines, and high-throughput predictive machine learning models. Passionate about bridging theoretical AI research with production-grade engineering to build reliable, high-impact data products.",
+            "https://github.com",
+            "https://linkedin.com",
+            "alex.devlin.ai@example.com",
+            "San Francisco, CA / Remote"
         ))
 
         # Seed Categories
